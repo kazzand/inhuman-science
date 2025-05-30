@@ -1,0 +1,9 @@
+README.md
+setup.py
+inhuman_science.egg-info/PKG-INFO
+inhuman_science.egg-info/SOURCES.txt
+inhuman_science.egg-info/dependency_links.txt
+inhuman_science.egg-info/top_level.txt
+utils/__init__.py
+utils/parsing_utils.py
+utils/service_utils.py

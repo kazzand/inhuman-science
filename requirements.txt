@@ -1,0 +1,7 @@
+anthropic
+openai
+requests
+bs4
+apscheduler
+pytz
+PyPDF2
