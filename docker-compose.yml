@@ -1,0 +1,12 @@
+services:
+  inhuman-science:
+    build: .
+    container_name: inhuman-science
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - ./state.db:/app/state.db
+      - ./pdfs:/app/pdfs
+      - ./images:/app/images
+    environment:
+      - PYTHONUNBUFFERED=1
