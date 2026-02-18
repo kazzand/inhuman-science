@@ -1,1 +1,10 @@
 detectron2/
+__pycache__/
+*.pyc
+.env
+state.db
+pdfs/
+images/
+*.pdf
+.venv/
+venv/
