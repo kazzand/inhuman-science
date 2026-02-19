@@ -119,6 +119,27 @@ def mark_tweet_posted(
     get_conn().commit()
 
 
+def get_recent_titles(days: int = 3, limit: int = 30) -> list[str]:
+    """Get titles of recently published content across all sources."""
+    conn = get_conn()
+    cutoff = datetime.utcnow().isoformat()[:10]
+    titles: list[str] = []
+    for table in ("posted_papers", "posted_blogs"):
+        rows = conn.execute(
+            f"SELECT title FROM {table} WHERE posted_at > date(?, '-' || ? || ' days') "
+            f"ORDER BY posted_at DESC LIMIT ?",
+            (cutoff, str(days), limit),
+        ).fetchall()
+        titles.extend(r["title"] for r in rows if r["title"])
+    rows = conn.execute(
+        "SELECT tweet_url FROM posted_tweets WHERE posted_at > date(?, '-' || ? || ' days') "
+        "ORDER BY posted_at DESC LIMIT ?",
+        (cutoff, str(days), limit),
+    ).fetchall()
+    titles.extend(r["tweet_url"] for r in rows if r["tweet_url"])
+    return titles[:limit]
+
+
 def save_oracle_decision(
     content_id: str,
     content_type: str,

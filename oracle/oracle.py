@@ -9,7 +9,7 @@ import requests
 import config
 from llm.client import oracle_score, fact_check
 from sources.base import ContentItem
-from storage.state import save_oracle_decision
+from storage.state import save_oracle_decision, get_recent_titles
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +135,52 @@ def verify_content(item: ContentItem) -> tuple[bool, float, str]:
     except Exception:
         logger.exception("Fact-check failed for %s", item.content_id)
         return True, 0.3, "Fact-check error"
+
+
+_DEDUP_PROMPT = """\
+I'm about to publish a new post. Check if it covers the SAME topic/news as any \
+of the recently published items listed below.
+
+New post title: {new_title}
+New post summary: {new_summary}
+
+Recently published:
+{recent_list}
+
+Is the new post about the same specific topic (same paper, same product launch, \
+same announcement) as any of the recent items? Minor thematic overlap is OK — \
+only flag if it's literally the same news from a different source.
+
+Respond ONLY with JSON: {{"is_duplicate": <true/false>, "duplicate_of": "<which item or empty>"}}
+"""
+
+
+def is_duplicate(item: ContentItem) -> tuple[bool, str]:
+    """Check if content is a duplicate of something recently published."""
+    recent = get_recent_titles(days=3, limit=20)
+    if not recent:
+        return False, ""
+
+    recent_list = "\n".join(f"- {t}" for t in recent)
+    prompt = _DEDUP_PROMPT.format(
+        new_title=item.title,
+        new_summary=item.summary[:500],
+        recent_list=recent_list,
+    )
+
+    try:
+        raw = oracle_score(prompt)
+        data = _parse_json(raw)
+        if data:
+            is_dup = bool(data.get("is_duplicate", False))
+            dup_of = data.get("duplicate_of", "")
+            if is_dup:
+                logger.info("Duplicate detected: '%s' ~ '%s'", item.title[:60], dup_of)
+            return is_dup, dup_of
+    except Exception:
+        logger.exception("Dedup check failed for %s", item.content_id)
+
+    return False, ""
 
 
 def _fetch_web_context(url: str) -> str:

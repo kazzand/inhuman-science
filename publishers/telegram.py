@@ -30,9 +30,9 @@ def send_post_with_image(
         logger.warning("Telegram not configured, skipping post")
         return None
 
-    caption = _sanitize_html(text)
+    caption = text
     if link:
-        caption += f'\n\n<a href="{link}">Источник</a>'
+        caption += f"\n\n{link}"
 
     if image_path and image_path.exists():
         return _send_photo(caption, image_path)
@@ -48,7 +48,6 @@ def _send_photo(caption: str, image_path: Path) -> str | None:
             data={
                 "chat_id": config.TELEGRAM_CHANNEL_ID,
                 "caption": caption[:1024],
-                "parse_mode": "HTML",
                 "disable_notification": True,
             },
             files={"photo": f},
@@ -72,7 +71,6 @@ def _send_text(text: str) -> str | None:
         data={
             "chat_id": config.TELEGRAM_CHANNEL_ID,
             "text": text[:4096],
-            "parse_mode": "HTML",
             "disable_notification": True,
             "disable_web_page_preview": False,
         },
