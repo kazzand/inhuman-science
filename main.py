@@ -17,7 +17,7 @@ import config
 from sources.alphaxiv import fetch_trending_papers
 from sources.blogs import fetch_blog_posts, fetch_full_blog_content
 from sources.twitter_feed import fetch_ai_leader_tweets
-from oracle.oracle import evaluate_content, verify_content
+from oracle.oracle import evaluate_content, verify_content, is_duplicate
 from processors.pdf import download_pdf, extract_text
 from processors.images import extract_best_figure
 from processors.post_generator import (
@@ -78,6 +78,11 @@ def run_papers_pipeline() -> None:
             score, should_publish, reason = evaluate_content(item)
             if not should_publish:
                 logger.info("Skipping (score=%.1f): %s", score, item.title[:60])
+                continue
+
+            dup, dup_of = is_duplicate(item)
+            if dup:
+                logger.info("Skipping duplicate paper: %s ~ %s", item.title[:60], dup_of)
                 continue
 
             try:
@@ -144,6 +149,11 @@ def run_blogs_pipeline() -> None:
                 logger.warning("Blog fact-check failed: %s — %s", item.title[:60], issues)
                 continue
 
+            dup, dup_of = is_duplicate(item)
+            if dup:
+                logger.info("Skipping duplicate blog: %s ~ %s", item.title[:60], dup_of)
+                continue
+
             try:
                 source_label = item.source_name.replace("_", " ").title()
                 content = item.full_text or item.summary
@@ -194,6 +204,11 @@ def run_twitter_pipeline() -> None:
             verified, confidence, issues = verify_content(item)
             if not verified and confidence > 0.6:
                 logger.warning("Tweet fact-check failed: %s", item.title[:60])
+                continue
+
+            dup, dup_of = is_duplicate(item)
+            if dup:
+                logger.info("Skipping duplicate tweet: %s ~ %s", item.title[:60], dup_of)
                 continue
 
             try:
